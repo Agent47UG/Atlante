@@ -1,0 +1,1147 @@
+:root {
+    --paper: #e8e6dc;
+    --paper-dark: #d9d7cd;
+    --ink: #3a3a35;
+    --ink-soft: rgba(58, 58, 53, 0.55);
+    --ink-faint: rgba(58, 58, 53, 0.22);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'Spectral', Georgia, serif;
+    color: var(--ink);
+    background-color: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selected-event background image: a soft, blurred, sepia-tinted layer
+   that sits between the paper and every UI element. Crossfades on change. */
+.event-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.event-bg-layer {
+    position: absolute;
+    inset: -3%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(3px) sepia(0.35) saturate(0.85) brightness(0.6);
+    opacity: 0;
+    animation: eventBgIn 900ms ease forwards;
+}
+
+.event-bg-layer.is-prev {
+    animation: eventBgOut 900ms ease forwards;
+}
+
+@keyframes eventBgIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 0.75;
+    }
+}
+
+@keyframes eventBgOut {
+    from {
+        opacity: 0.65;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* Paper grain: a fixed, full-viewport SVG fractal-noise overlay sits above
+   every layer of the app but ignores pointer events. Multiply blend lets the
+   grain darken the paper texture without washing out content beneath. */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.10  0 0 0 0 0.08  0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 240px 240px;
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+}
+
+.app {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ---------- Intro animation stages ---------- */
+
+/* The splash title is rendered as a separate centered element and animates
+   into the nav. The real nav title is invisible until splash hands off. */
+.splash-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.splash-title {
+    margin: 0;
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    font-weight: 600;
+    font-size: clamp(3.5rem, 9vw, 7rem);
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    line-height: 1;
+    transform-origin: center center;
+    opacity: 0;
+    animation: splashFadeIn 700ms ease forwards;
+    will-change: transform, opacity;
+}
+
+@keyframes splashFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Hide everything except the splash title until the splash has landed. */
+.app:not(.stage-ready) .nav-title,
+.app:not(.stage-ready) .globe-stage,
+.app:not(.stage-ready) .nav-mark,
+.app:not(.stage-ready) .nav-subtitle,
+.app:not(.stage-ready) .nav-links,
+.app:not(.stage-ready) .timeline,
+.app:not(.stage-ready) .byline,
+.app:not(.stage-ready) .details-panel,
+.app:not(.stage-ready) .connector {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.app.stage-ready .nav-title,
+.app.stage-ready .globe-stage,
+.app.stage-ready .nav-mark,
+.app.stage-ready .nav-subtitle,
+.app.stage-ready .nav-links,
+.app.stage-ready .timeline,
+.app.stage-ready .byline {
+    opacity: 1;
+    transition: opacity 700ms ease 100ms;
+}
+
+.app.stage-ready .nav-title {
+    /* Crossfade with the splash: no delay, match the splash fade duration. */
+    transition: opacity 400ms ease;
+}
+
+.app.stage-ready .globe-stage {
+    /* Globe fades + zooms in after the mark. */
+    transition: opacity 900ms ease 250ms;
+    animation: globeZoomIn 1200ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both;
+}
+
+@keyframes globeZoomIn {
+    from {
+        transform: scale(0.72);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+.app.stage-ready .nav-mark {
+    /* Mark appears first, right alongside the title handoff. */
+    transition-delay: 0ms;
+}
+
+.app.stage-ready .nav-subtitle {
+    transition-delay: 80ms;
+}
+
+.app.stage-ready .nav-links {
+    /* Social icons come in after the globe has settled. */
+    transition-delay: 1100ms;
+}
+
+.app.stage-ready .timeline {
+    transition-delay: 1200ms;
+}
+
+.app.stage-ready .byline {
+    transition-delay: 1300ms;
+}
+
+.title {
+    position: absolute;
+    top: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    z-index: 3;
+    user-select: none;
+}
+
+.subtitle {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.85rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    z-index: 3;
+    user-select: none;
+}
+
+.globe-stage {
+    position: relative;
+    width: min(90vmin, 900px);
+    height: min(90vmin, 900px);
+    z-index: 1;
+}
+
+.globe-stage canvas {
+    cursor: grab;
+}
+
+.globe-stage canvas:active {
+    cursor: grabbing;
+}
+
+/* ---------- Nav ---------- */
+
+.nav {
+    position: fixed;
+    top: 1.5rem;
+    left: 2rem;
+    right: 2rem;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    pointer-events: none;
+    user-select: none;
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    pointer-events: auto;
+}
+
+.nav-link {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ink-faint);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.nav-link:hover {
+    color: var(--ink);
+    border-color: var(--ink-soft);
+    transform: translateY(-1px);
+}
+
+.nav-link:focus-visible {
+    outline: 1px solid var(--ink);
+    outline-offset: 2px;
+}
+
+/* Hamburger menu toggle (mobile only; hidden on desktop). */
+.nav-menu-toggle {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: var(--ink);
+    pointer-events: auto;
+    z-index: 7;
+}
+
+.nav-menu-bar {
+    display: block;
+    width: 22px;
+    height: 1.5px;
+    background: currentColor;
+    border-radius: 1px;
+    transition: transform 240ms ease, opacity 200ms ease;
+    transform-origin: center;
+}
+
+.nav-menu-toggle.is-open .nav-menu-bar:nth-child(1) {
+    transform: translateY(6.5px) rotate(45deg);
+}
+
+.nav-menu-toggle.is-open .nav-menu-bar:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-menu-toggle.is-open .nav-menu-bar:nth-child(3) {
+    transform: translateY(-6.5px) rotate(-45deg);
+}
+
+/* ---------- Bottom-right byline ---------- */
+
+.byline {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1rem;
+    z-index: 4;
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    pointer-events: none;
+    user-select: none;
+}
+
+.byline-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+
+.byline-name {
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--ink);
+}
+
+.nav-mark {
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--ink-soft);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+    background: var(--paper);
+}
+
+.nav-mark-glyph {
+    font-size: 0.95rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-titles {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.nav-title {
+    margin: 0;
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    font-weight: 600;
+    font-size: 1.55rem;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+}
+
+.nav-subtitle {
+    margin: 2px 0 0;
+    font-size: 0.6rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+
+/* ---------- Timeline (compact icon strip) ---------- */
+
+.timeline {
+    position: fixed;
+    left: 50%;
+    bottom: 1.75rem;
+    transform: translateX(-50%);
+    width: min(720px, 88vw);
+    height: 44px;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.timeline-track {
+    pointer-events: auto;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    /* Clip horizontally only so tooltips can still escape upward */
+    clip-path: inset(-200px 0 -200px 0);
+    /* Feather the rail's left/right edges so icons dissolve into
+       whatever sits behind (paper, image, anything) instead of needing
+       a paper-coloured gradient overlay. */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
+    cursor: grab;
+    touch-action: pan-y;
+}
+
+.timeline-track.is-dragging {
+    cursor: grabbing;
+}
+
+.timeline-rail {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: max-content;
+    height: 38px;
+    margin-top: -19px;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    will-change: transform;
+    user-select: none;
+}
+
+.timeline-spine {
+    position: absolute;
+    top: 50%;
+    left: 18px;
+    right: 18px;
+    height: 1px;
+    background: var(--ink-faint);
+    pointer-events: none;
+}
+
+.tl-event {
+    flex: 0 0 auto;
+    position: relative;
+    width: 38px;
+    height: 38px;
+    margin: 0 2px;
+    padding: 0;
+    background: var(--paper);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--ink-soft);
+    font-family: inherit;
+    line-height: 1;
+    transition: color 180ms ease, transform 180ms ease, background 180ms ease;
+    z-index: 2;
+}
+
+.tl-event:hover {
+    color: var(--ink);
+    transform: translateY(-1px);
+}
+
+.tl-event.is-selected {
+    color: var(--ink);
+}
+
+.tl-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 180ms ease, font-size 180ms ease;
+}
+
+.tl-event:hover .tl-icon,
+.tl-event.is-selected .tl-icon {
+    opacity: 1;
+}
+
+.tl-event.is-selected .tl-icon {
+    font-size: 1.55rem;
+}
+
+/* small underline tick to mark the selected one */
+.tl-event.is-selected::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -8px;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: var(--ink);
+}
+
+/* Floating tooltip — rendered outside the clipped track */
+.tl-floating-tip {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0.4rem 0.7rem;
+    background: var(--paper);
+    border: 1px solid var(--ink-faint);
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(58, 50, 30, 0.08);
+    z-index: 7;
+}
+
+.tl-floating-tip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 1px;
+    height: 6px;
+    margin-left: -0.5px;
+    background: var(--ink-faint);
+}
+
+.tl-tt-title {
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 0.82rem;
+    color: var(--ink);
+    line-height: 1.1;
+}
+
+.tl-tt-year {
+    font-size: 0.58rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+}
+
+/* "Click here to start" hint over the first event */
+.tl-start-hint {
+    position: absolute;
+    bottom: calc(100% - 4px);
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--ink-soft);
+    pointer-events: none;
+    opacity: 0;
+    animation: hintFadeIn 600ms ease 400ms forwards;
+    z-index: 6;
+}
+
+.tl-start-hint-text {
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    margin-bottom: -0.35rem;
+    white-space: nowrap;
+    animation: hintBob 2.2s ease-in-out infinite;
+}
+
+.tl-start-hint-arrow {
+    animation: hintBob 2.2s ease-in-out infinite;
+}
+
+@keyframes hintFadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes hintBob {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(4px);
+    }
+}
+
+/* Inline kbd hint inside the start hint text (option #2). */
+.tl-start-hint-kbd {
+    font-style: normal;
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+}
+
+.tl-start-hint-kbd kbd,
+.tl-kbd-hint kbd {
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 0.78rem;
+    padding: 0 0.32rem;
+    border: 1px solid var(--ink-faint);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+    margin: 0 0.1rem;
+    line-height: 1.4;
+    display: inline-block;
+}
+
+/* Permanent ← / → key hints flanking the rail (option #1). */
+.tl-kbd-hint {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ink-faint);
+    border-radius: 50%;
+    color: var(--ink-soft);
+    background: var(--paper);
+    pointer-events: none;
+    z-index: 5;
+    user-select: none;
+    transition: color 200ms ease, border-color 200ms ease;
+}
+
+.tl-kbd-hint-left {
+    right: 100%;
+    margin-right: 0.75rem;
+}
+
+.tl-kbd-hint-right {
+    left: 100%;
+    margin-left: 0.75rem;
+}
+
+/* Edge fade is now done by a mask on .timeline-track itself; these legacy
+   overlay elements are kept empty to avoid touching the JSX. */
+.timeline-fade {
+    display: none;
+}
+
+/* ---------- Details Panel (floating card) ---------- */
+
+.details-panel {
+    position: fixed;
+    top: 50%;
+    width: min(360px, 88vw);
+    max-height: calc(100vh - 12rem);
+    background: var(--paper);
+    border: 1px solid var(--ink-faint);
+    border-radius: 4px;
+    padding: 1.75rem 1.75rem 1.5rem;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 220ms ease,
+        transform 280ms cubic-bezier(0.4, 0.0, 0.2, 1),
+        left 320ms cubic-bezier(0.4, 0.0, 0.2, 1),
+        right 320ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 5;
+    box-shadow:
+        0 1px 0 rgba(58, 50, 30, 0.04),
+        0 12px 32px rgba(58, 50, 30, 0.12),
+        0 2px 6px rgba(58, 50, 30, 0.06);
+}
+
+.details-panel.side-right {
+    right: 2.5rem;
+    left: auto;
+    transform: translateY(-50%) translateX(20px);
+}
+
+.details-panel.side-left {
+    left: 2.5rem;
+    right: auto;
+    transform: translateY(-50%) translateX(-20px);
+}
+
+.details-panel.is-open.side-right,
+.details-panel.is-open.side-left {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+    pointer-events: auto;
+}
+
+.details-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    transition: color 160ms ease;
+}
+
+.details-close:hover {
+    color: var(--ink);
+}
+
+.details-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 0.6rem;
+}
+
+.details-icon {
+    font-size: 0.9rem;
+    color: var(--ink);
+}
+
+.details-title {
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+    line-height: 1.15;
+    margin: 0 0 0.5rem;
+    color: var(--ink);
+}
+
+.details-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    margin-bottom: 1rem;
+}
+
+.details-year {
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 0.7rem;
+}
+
+.details-dot {
+    opacity: 0.5;
+}
+
+.details-location {
+    font-style: italic;
+}
+
+.details-rule {
+    height: 1px;
+    background: var(--ink-faint);
+    margin: 0.25rem 0 1rem;
+}
+
+.details-description {
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: var(--ink);
+    margin: 0;
+}
+
+/* ---------- Connector (marker → card line) ---------- */
+
+.connector {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+    transition: opacity 200ms ease;
+}
+
+.connector.is-active {
+    opacity: 1;
+}
+
+/* ============================================================
+   Responsive: tablet and mobile
+   ============================================================ */
+
+/* Tablet: tighten nav, shrink globe, reduce side margins */
+@media (max-width: 900px) {
+    .nav {
+        top: 1rem;
+        left: 1.25rem;
+        right: 1.25rem;
+    }
+
+    .nav-title {
+        font-size: 1.3rem;
+    }
+
+    .nav-subtitle {
+        font-size: 0.65rem;
+    }
+
+    .nav-mark {
+        width: 30px;
+        height: 30px;
+    }
+
+    .nav-link {
+        width: 30px;
+        height: 30px;
+    }
+
+    .nav-links {
+        gap: 0.55rem;
+    }
+
+    .globe-stage {
+        width: min(86vmin, 700px);
+        height: min(86vmin, 700px);
+    }
+
+    .details-panel.side-right {
+        right: 1.25rem;
+    }
+
+    .details-panel.side-left {
+        left: 1.25rem;
+    }
+
+    .byline {
+        right: 1.25rem;
+    }
+}
+
+/* Mobile: stack nav, hide subtitle, drop side-card to bottom sheet,
+   hide non-essential decoration. */
+@media (max-width: 640px) {
+    .nav {
+        top: 2.75rem;
+        left: 1rem;
+        right: 1rem;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Center the title block; the hamburger floats to the right. */
+    .nav-left {
+        flex: 1;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .nav-titles {
+        align-items: center;
+    }
+
+    .nav-menu-toggle {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .nav-menu-toggle.is-open {
+        transform: translateY(-50%);
+    }
+
+    /* Hamburger replaces the inline social row on phones. */
+    .nav-menu-toggle {
+        display: flex;
+    }
+
+    /* Hide the star mark on phones; the title carries the brand. */
+    .nav-mark {
+        display: none;
+    }
+
+    .nav-subtitle {
+        display: block;
+        font-size: 0.62rem;
+        letter-spacing: 0.22em;
+    }
+
+    .nav-title {
+        font-size: 2.6rem;
+    }
+
+    /* On mobile, .nav-links becomes a FULL-PAGE drawer that slides in from
+       the right. On close, we delay the slide so the icons inside can fly
+       out first (otherwise the drawer's 100vw slide hides their motion). */
+    .app.stage-ready .nav-links,
+    .app .nav-links {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: auto;
+        width: 100vw;
+        max-width: 100vw;
+        height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.75rem;
+        padding: 4rem 2rem;
+        margin: 0;
+        background: var(--paper);
+        border: none;
+        border-radius: 0;
+        box-shadow: -12px 0 32px rgba(58, 50, 30, 0.12);
+        opacity: 1;
+        pointer-events: none;
+        transform: translateX(100%);
+        transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1) 280ms, opacity 400ms ease;
+        z-index: 8;
+        will-change: transform;
+    }
+
+    .app.stage-ready .nav-links.is-open,
+    .app .nav-links.is-open {
+        pointer-events: auto;
+        transform: translateX(0);
+        transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms ease;
+    }
+
+    /* Make each link a tall, generous tap target inside the drawer.
+       Each link slides in from the right with a small stagger when the
+       drawer opens, and slides back out (transition is on the closed state). */
+    /* Each link inside the drawer. On close the icons fly out further
+       (translateX 80px) and fade, so the motion is visible BEFORE the
+       drawer itself starts sliding away. */
+    .nav-link {
+        width: 64px;
+        height: 64px;
+        opacity: 0;
+        transform: translateX(80px);
+        transition:
+            opacity 240ms ease,
+            transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-links.is-open .nav-link {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .nav-links.is-open .nav-link:nth-child(1) {
+        transition-delay: 140ms;
+    }
+
+    .nav-links.is-open .nav-link:nth-child(2) {
+        transition-delay: 200ms;
+    }
+
+    .nav-links.is-open .nav-link:nth-child(3) {
+        transition-delay: 260ms;
+    }
+
+    /* On close: reverse stagger so links fly out right-to-left. */
+    .nav-links:not(.is-open) .nav-link:nth-child(3) {
+        transition-delay: 0ms;
+    }
+
+    .nav-links:not(.is-open) .nav-link:nth-child(2) {
+        transition-delay: 80ms;
+    }
+
+    .nav-links:not(.is-open) .nav-link:nth-child(1) {
+        transition-delay: 160ms;
+    }
+
+    .nav-link svg {
+        width: 26px;
+        height: 26px;
+    }
+
+    /* Keep the hamburger above the drawer so it can close it. */
+    .nav-menu-toggle {
+        z-index: 9;
+    }
+
+    .splash-title {
+        font-size: clamp(2.5rem, 14vw, 4.5rem);
+    }
+
+    .globe-stage {
+        width: 100vmin;
+        height: 100vmin;
+    }
+
+    /* Card becomes a bottom sheet so it doesn't fight the small viewport. */
+    .details-panel,
+    .details-panel.side-right,
+    .details-panel.side-left {
+        top: auto;
+        bottom: 6.5rem;
+        left: 1rem;
+        right: 1rem;
+        width: auto;
+        max-height: 50vh;
+        transform: translateY(20px);
+        padding: 1.25rem 1.25rem 1rem;
+    }
+
+    .details-panel.is-open.side-right,
+    .details-panel.is-open.side-left {
+        transform: translateY(0);
+    }
+
+    /* The connector line is meaningless when the card is below the globe. */
+    .connector {
+        display: none;
+    }
+
+    /* Side arrow buttons crowd a small rail; hide them on mobile. */
+    .tl-kbd-hint {
+        display: none;
+    }
+
+    .timeline {
+        width: min(580px, 98vw);
+        height: 64px;
+        bottom: 1.5rem;
+    }
+
+    .tl-event {
+        width: 52px;
+        height: 52px;
+    }
+
+    .tl-icon {
+        font-size: 1.85rem;
+    }
+
+    /* Hide the corner byline on phones — it's promoted into the drawer below. */
+    .byline {
+        display: none;
+    }
+
+    /* Tone down the event background so it doesn't drown the card */
+    .event-bg-layer.is-curr {
+        opacity: 0.5;
+    }
+}
+
+/* Drawer byline: hidden by default, only shown inside the mobile drawer. */
+.nav-drawer-byline {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .nav-drawer-byline {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        margin-top: 2.5rem;
+        color: var(--ink);
+        opacity: 0;
+        transform: translateX(80px);
+        transition:
+            opacity 240ms ease,
+            transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-links.is-open .nav-drawer-byline {
+        opacity: 1;
+        transform: translateX(0);
+        transition-delay: 320ms;
+    }
+
+    .nav-links:not(.is-open) .nav-drawer-byline {
+        transition-delay: 0ms;
+    }
+
+    .nav-drawer-byline-label {
+        font-size: 0.85rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+    }
+
+    .nav-drawer-byline-name {
+        font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+        font-style: italic;
+        font-size: 2.4rem;
+        line-height: 1;
+        color: var(--ink);
+    }
+}
+
+@media (max-height: 560px) {
+    .globe-stage {
+        width: min(70vmin, 560px);
+        height: min(70vmin, 560px);
+    }
+
+    .nav-subtitle {
+        display: none;
+    }
+}
